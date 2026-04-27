@@ -1,0 +1,6 @@
+frames/
+.env/
+__MACOSX/
+__pycache__/
+*png
+*gif
