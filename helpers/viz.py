@@ -8,6 +8,8 @@ import imageio.v2 as imageio
 from helpers.env import ACTIONS, SlipperyGridWorld
 
 ARROWS = {0: "↑", 1: "→", 2: "↓", 3: "←"}
+
+
 def _base_grid_figure(env, title: str = ""):
     fig, ax = plt.subplots()
     ax.set_aspect("equal")
@@ -21,6 +23,7 @@ def _base_grid_figure(env, title: str = ""):
     ax.set_yticklabels([])
     ax.set_title(title)
     return fig, ax
+
 
 def plot_policy(
     env: SlipperyGridWorld,
@@ -41,8 +44,20 @@ def plot_policy(
 
     sr, sc = env.start_row_column
     gr, gc = env.goal_row_column
-    ax.text(sc, sr, "S", ha="center", va="center", fontsize=14, fontweight="bold")
-    ax.text(gc, gr, "G", ha="center", va="center", fontsize=14, fontweight="bold")
+    ax.text(sc,
+            sr,
+            "S",
+            ha="center",
+            va="center",
+            fontsize=14,
+            fontweight="bold")
+    ax.text(gc,
+            gr,
+            "G",
+            ha="center",
+            va="center",
+            fontsize=14,
+            fontweight="bold")
 
     for s in range(env.num_states):
         r, c = env.state_to_row_column(s)
@@ -54,6 +69,7 @@ def plot_policy(
     if filename:
         fig.savefig(filename, dpi=200, bbox_inches="tight")
     plt.show()
+
 
 def plot_value_heatmap(
     env,
@@ -81,16 +97,29 @@ def plot_value_heatmap(
 
     sr, sc = env.start_row_column
     gr, gc = env.goal_row_column
-    ax.text(sc, sr, "S", ha="center", va="center", fontsize=12, fontweight="bold")
-    ax.text(gc, gr, "G", ha="center", va="center", fontsize=12, fontweight="bold")
+    ax.text(sc,
+            sr,
+            "S",
+            ha="center",
+            va="center",
+            fontsize=12,
+            fontweight="bold")
+    ax.text(gc,
+            gr,
+            "G",
+            ha="center",
+            va="center",
+            fontsize=12,
+            fontweight="bold")
 
     if filename:
         fig.savefig(filename, dpi=200, bbox_inches="tight")
     plt.show()
 
+
 def render_episode_frames(
-    env:SlipperyGridWorld,
-    trajectory: List[Tuple[int,int,int,float,int,bool]],
+    env: SlipperyGridWorld,
+    trajectory: List[Tuple[int, int, int, float, int, bool]],
     out_dir: str = "frames",
     prefix: str = "frame",
     show_executed_action: bool = True,
@@ -105,16 +134,37 @@ def render_episode_frames(
     for t, (s, a_intended, a_exec, r, s_next, done) in enumerate(trajectory):
         r_next, c_next = env.state_to_row_column(s_next)
 
-        fig, ax = _base_grid_figure(env, title=f"t={t}, r={r:.2f}, done={done}")
+        fig, ax = _base_grid_figure(env,
+                                    title=f"t={t}, r={r:.2f}, done={done}")
         sr, sc = env.start_row_column
         gr, gc = env.goal_row_column
-        ax.text(sc, sr, "S", ha="center", va="center", fontsize=14, fontweight="bold")
-        ax.text(gc, gr, "G", ha="center", va="center", fontsize=14, fontweight="bold")
+        ax.text(sc,
+                sr,
+                "S",
+                ha="center",
+                va="center",
+                fontsize=14,
+                fontweight="bold")
+        ax.text(gc,
+                gr,
+                "G",
+                ha="center",
+                va="center",
+                fontsize=14,
+                fontweight="bold")
 
-        ax.text(c_next, r_next, "A", ha="center", va="center", fontsize=16, fontweight="bold")
+        ax.text(c_next,
+                r_next,
+                "A",
+                ha="center",
+                va="center",
+                fontsize=16,
+                fontweight="bold")
 
         if show_executed_action:
-            ax.set_title(f"t={t}  intended={ARROWS[a_intended]}  executed={ARROWS[a_exec]}  r={r:.2f}  done={done}")
+            ax.set_title(
+                f"t={t}  intended={ARROWS[a_intended]}  executed={ARROWS[a_exec]}  r={r:.2f}  done={done}"
+            )
 
         path = os.path.join(out_dir, f"{prefix}_{t:04d}.png")
         fig.savefig(path, dpi=200, bbox_inches="tight")
@@ -123,7 +173,12 @@ def render_episode_frames(
 
     return saved
 
-def run_to_gif(env: SlipperyGridWorld, Q: Optional[np.ndarray]=None, policy: Optional[np.ndarray]=None, gif_path: str = "episode.gif", fps: int = 6) -> None:
+
+def run_to_gif(env: SlipperyGridWorld,
+               Q: Optional[np.ndarray] = None,
+               policy: Optional[np.ndarray] = None,
+               gif_path: str = "episode.gif",
+               fps: int = 6) -> None:
     """Creates a gif for a single run of the agent in the environment.
 
     Args:
@@ -133,10 +188,14 @@ def run_to_gif(env: SlipperyGridWorld, Q: Optional[np.ndarray]=None, policy: Opt
         gif_path (str, optional): Where to save the path. Defaults to "episode.gif".
         fps (int, optional): Frames per second for the gif. Defaults to 6.
     """
-    roll = run_episode(env, Q=Q, policy = policy)
-    frames = render_episode_frames(env, roll["trajectory"], out_dir="frames", prefix="ep")
+    roll = run_episode(env, Q=Q, policy=policy)
+    frames = render_episode_frames(env,
+                                   roll["trajectory"],
+                                   out_dir="frames",
+                                   prefix="ep")
     imgs = [imageio.imread(p) for p in frames]
     imageio.mimsave(gif_path, imgs, duration=1.0 / fps)
+
 
 def greedy_policy_from_V(V: np.ndarray, env: SlipperyGridWorld, gamma: float):
     """Returns greedy policy rom the value function V(s)
@@ -151,7 +210,7 @@ def greedy_policy_from_V(V: np.ndarray, env: SlipperyGridWorld, gamma: float):
     """
     policy = np.zeros(len(V))
     for state in range(len(V)):
-        q_a = [-np.inf]*len(ACTIONS)
+        q_a = [-np.inf] * len(ACTIONS)
         for a in ACTIONS:
             q = 0.0
             for p, s_next in env.get_transition_distribution(state, a):
@@ -164,12 +223,11 @@ def greedy_policy_from_V(V: np.ndarray, env: SlipperyGridWorld, gamma: float):
         policy[state] = int(np.argmax(q_a))
     return policy
 
-def run_episode(
-    env: SlipperyGridWorld,
-    Q: Optional[np.ndarray] = None,
-    policy: Optional[np.ndarray] = None,
-    seed: int = None
-) -> Dict:
+
+def run_episode(env: SlipperyGridWorld,
+                Q: Optional[np.ndarray] = None,
+                policy: Optional[np.ndarray] = None,
+                seed: int = None) -> Dict:
     """Roll out a single episode.
 
     Args:
@@ -213,6 +271,7 @@ def run_episode(
         "trajectory": traj,
     }
 
+
 def evaluate(
     env: SlipperyGridWorld,
     Q: Optional[np.ndarray] = None,
@@ -248,3 +307,87 @@ def evaluate(
         "success_rate": float(np.round(np.mean(success), decimals=4)),
         "avg_steps": float(np.round(np.mean(steps), decimals=4)),
     }
+
+
+def plot_and_evaluate(
+    env: SlipperyGridWorld,
+    *,
+    policy: Optional[np.ndarray] = None,
+    Q: Optional[np.ndarray] = None,
+    V: Optional[np.ndarray] = None,
+    policy_plot_name: str = "policy.png",
+    value_plot_name: str = "value.png",
+    policy_title: str = "Greedy Policy",
+    value_title: str = "V(s)",
+    n_val_episodes: int = 50,
+    seed: int = 0,
+    gif_name: str = "episode.gif",
+    fps: int = 6,
+) -> Dict[str, float]:
+    """Plot policy/value, evaluate, and render a single-episode gif."""
+    if policy is None and Q is None:
+        raise ValueError("Provide policy or Q")
+
+    env.reset()
+
+    if Q is not None:
+        policy = np.argmax(Q, axis=1).astype(float)
+        if V is None:
+            V = np.max(Q, axis=1)
+
+        plot_policy(env, policy, filename=policy_plot_name, title=policy_title)
+        if V is not None:
+            plot_value_heatmap(env,
+                               V,
+                               filename=value_plot_name,
+                               title=value_title)
+        plt.close("all")
+
+        metrics = evaluate(env, Q=Q, n_episodes=n_val_episodes, seed=seed)
+        run_to_gif(env, Q=Q, gif_path=gif_name, fps=fps)
+        return metrics
+
+    plot_policy(env, policy, filename=policy_plot_name, title=policy_title)
+    if V is not None:
+        plot_value_heatmap(env, V, filename=value_plot_name, title=value_title)
+    plt.close("all")
+
+    metrics = evaluate(env,
+                       policy=policy,
+                       n_episodes=n_val_episodes,
+                       seed=seed)
+    run_to_gif(env, policy=policy, gif_path=gif_name, fps=fps)
+    return metrics
+
+
+def plot_convergence(
+    rewards_ql: List[float],
+    rewards_sarsa: List[float],
+    window: int = 200,
+    filename: str = "convergence.png",
+    title: str = "Convergence: Q-learning vs SARSA",
+) -> None:
+    """Plot rolling-average convergence curves for Q-learning and SARSA."""
+    if window <= 0:
+        raise ValueError("window must be positive")
+
+    ql_smoothed = np.convolve(rewards_ql,
+                              np.ones(window) / window,
+                              mode="valid")
+    sarsa_smoothed = np.convolve(rewards_sarsa,
+                                 np.ones(window) / window,
+                                 mode="valid")
+    episodes_ql = np.arange(window - 1, window - 1 + len(ql_smoothed))
+    episodes_sarsa = np.arange(window - 1, window - 1 + len(sarsa_smoothed))
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.plot(episodes_ql, ql_smoothed, label="Q-learning", color="steelblue")
+    ax.plot(episodes_sarsa, sarsa_smoothed, label="SARSA", color="darkorange")
+    ax.set_xlabel("Episode")
+    ax.set_ylabel(f"Total reward (rolling avg over {window} episodes)")
+    ax.set_title(title)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    fig.savefig(filename, dpi=150)
+    plt.show()
