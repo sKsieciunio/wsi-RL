@@ -23,27 +23,63 @@ def _configure_ax(env: SlipperyGridWorld, ax, title: str = "") -> None:
     ax.set_title(title)
 
     for r, c in getattr(env, "cliff_fields", set()):
-        ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1,
-                                   color="tomato", alpha=0.7, zorder=1))
-        ax.text(c, r, "C", ha="center", va="center",
-                fontsize=9, fontweight="bold", zorder=2)
+        ax.add_patch(
+            plt.Rectangle((c - 0.5, r - 0.5),
+                          1,
+                          1,
+                          color="tomato",
+                          alpha=0.7,
+                          zorder=1))
+        ax.text(c,
+                r,
+                "C",
+                ha="center",
+                va="center",
+                fontsize=9,
+                fontweight="bold",
+                zorder=2)
 
     for r, c in getattr(env, "wall_fields", set()):
-        ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1,
-                                   color="dimgray", alpha=0.85, zorder=1))
-        ax.text(c, r, "W", ha="center", va="center",
-                fontsize=9, fontweight="bold", color="white", zorder=2)
+        ax.add_patch(
+            plt.Rectangle((c - 0.5, r - 0.5),
+                          1,
+                          1,
+                          color="dimgray",
+                          alpha=0.85,
+                          zorder=1))
+        ax.text(c,
+                r,
+                "W",
+                ha="center",
+                va="center",
+                fontsize=9,
+                fontweight="bold",
+                color="white",
+                zorder=2)
 
     for r, c in getattr(env, "penalty_fields", set()):
-        ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1,
-                                   color="gold", alpha=0.55, zorder=1))
-        ax.text(c, r, "P", ha="center", va="center",
-                fontsize=9, fontweight="bold", zorder=2)
+        ax.add_patch(
+            plt.Rectangle((c - 0.5, r - 0.5),
+                          1,
+                          1,
+                          color="gold",
+                          alpha=0.0,
+                          zorder=1))
+        ax.text(c,
+                r,
+                "P",
+                ha="center",
+                va="center",
+                fontsize=9,
+                fontweight="bold",
+                color="red",
+                zorder=2)
 
 
 def _base_grid_figure(env, title: str = ""):
     cell_size = 0.6
-    fig, ax = plt.subplots(figsize=(env.cols * cell_size + 1.5, env.rows * cell_size + 1.0))
+    fig, ax = plt.subplots(figsize=(env.cols * cell_size + 1.5,
+                                    env.rows * cell_size + 1.0))
     _configure_ax(env, ax, title=title)
     return fig, ax
 
@@ -73,15 +109,35 @@ def plot_policy(
 
     sr, sc = env.start_row_column
     gr, gc = env.goal_row_column
-    ax.text(sc, sr, "S", ha="center", va="center", fontsize=14, fontweight="bold", zorder=3)
-    ax.text(gc, gr, "G", ha="center", va="center", fontsize=14, fontweight="bold", zorder=3)
+    ax.text(sc,
+            sr,
+            "S",
+            ha="center",
+            va="center",
+            fontsize=14,
+            fontweight="bold",
+            zorder=3)
+    ax.text(gc,
+            gr,
+            "G",
+            ha="center",
+            va="center",
+            fontsize=14,
+            fontweight="bold",
+            zorder=3)
 
     for s in range(env.num_states):
         r, c = env.state_to_row_column(s)
         if env.is_terminal_state(s) or (r, c) == env.start_row_column:
             continue
         a = int(policy[s])
-        ax.text(c, r, ARROWS[a], ha="center", va="center", fontsize=14, zorder=3)
+        ax.text(c,
+                r,
+                ARROWS[a],
+                ha="center",
+                va="center",
+                fontsize=14,
+                zorder=3)
 
     if standalone:
         if filename:
@@ -109,8 +165,8 @@ def plot_value_heatmap(
     standalone = ax is None
     if standalone:
         cell_size = 0.6
-        fig, ax = plt.subplots(
-            figsize=(env.cols * cell_size + 1.5, env.rows * cell_size + 1.0))
+        fig, ax = plt.subplots(figsize=(env.cols * cell_size + 1.5,
+                                        env.rows * cell_size + 1.0))
 
     V_grid = V.reshape(env.rows, env.cols)
     im = ax.imshow(V_grid, extent=(-0.5, env.cols - 0.5, env.rows - 0.5, -0.5))
@@ -119,10 +175,22 @@ def plot_value_heatmap(
 
     sr, sc = env.start_row_column
     gr, gc = env.goal_row_column
-    ax.text(sc, sr, "S", ha="center", va="center",
-            fontsize=12, fontweight="bold", zorder=3)
-    ax.text(gc, gr, "G", ha="center", va="center",
-            fontsize=12, fontweight="bold", zorder=3)
+    ax.text(sc,
+            sr,
+            "S",
+            ha="center",
+            va="center",
+            fontsize=12,
+            fontweight="bold",
+            zorder=3)
+    ax.text(gc,
+            gr,
+            "G",
+            ha="center",
+            va="center",
+            fontsize=12,
+            fontweight="bold",
+            zorder=3)
 
     if standalone:
         if filename:
@@ -144,10 +212,22 @@ def plot_env(
         _configure_ax(env, ax, title=title)
     sr, sc = env.start_row_column
     gr, gc = env.goal_row_column
-    ax.text(sc, sr, "S", ha="center", va="center",
-            fontsize=14, fontweight="bold", zorder=3)
-    ax.text(gc, gr, "G", ha="center", va="center",
-            fontsize=14, fontweight="bold", zorder=3)
+    ax.text(sc,
+            sr,
+            "S",
+            ha="center",
+            va="center",
+            fontsize=14,
+            fontweight="bold",
+            zorder=3)
+    ax.text(gc,
+            gr,
+            "G",
+            ha="center",
+            va="center",
+            fontsize=14,
+            fontweight="bold",
+            zorder=3)
     if standalone:
         if filename:
             fig.savefig(filename, dpi=200, bbox_inches="tight")
