@@ -1,6 +1,6 @@
 from __future__ import annotations
 import random
-from typing import Optional, Tuple, Dict, List
+from typing import Optional, Tuple, Dict, List, Mapping
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,6 +8,20 @@ import imageio.v2 as imageio
 from helpers.env import ACTIONS, SlipperyGridWorld
 
 ARROWS = {0: "↑", 1: "→", 2: "↓", 3: "←"}
+
+
+def _get_goal_positions(env) -> list[tuple[int, int]]:
+    goals = getattr(env, "goals", None)
+    if goals:
+        return list(goals)
+    return [env.goal_row_column]
+
+
+def _get_obstacle_positions(env) -> list[tuple[int, int]]:
+    obstacles = getattr(env, "obstacles", None)
+    if obstacles:
+        return list(obstacles)
+    return []
 
 
 def _base_grid_figure(env, title: str = ""):
@@ -43,7 +57,6 @@ def plot_policy(
     fig, ax = _base_grid_figure(env, title=title)
 
     sr, sc = env.start_row_column
-    gr, gc = env.goal_row_column
     ax.text(sc,
             sr,
             "S",
@@ -51,13 +64,25 @@ def plot_policy(
             va="center",
             fontsize=14,
             fontweight="bold")
-    ax.text(gc,
+
+    for gr, gc in _get_goal_positions(env):
+        ax.text(gc,
             gr,
             "G",
             ha="center",
             va="center",
             fontsize=14,
             fontweight="bold")
+
+    for orow, ocol in _get_obstacle_positions(env):
+        ax.text(ocol,
+            orow,
+            "X",
+            ha="center",
+            va="center",
+            fontsize=12,
+            fontweight="bold",
+            color="dimgray")
 
     for s in range(env.num_states):
         r, c = env.state_to_row_column(s)
@@ -96,7 +121,6 @@ def plot_value_heatmap(
     plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 
     sr, sc = env.start_row_column
-    gr, gc = env.goal_row_column
     ax.text(sc,
             sr,
             "S",
@@ -104,13 +128,25 @@ def plot_value_heatmap(
             va="center",
             fontsize=12,
             fontweight="bold")
-    ax.text(gc,
+
+    for gr, gc in _get_goal_positions(env):
+        ax.text(gc,
             gr,
             "G",
             ha="center",
             va="center",
             fontsize=12,
             fontweight="bold")
+
+    for orow, ocol in _get_obstacle_positions(env):
+        ax.text(ocol,
+            orow,
+            "X",
+            ha="center",
+            va="center",
+            fontsize=11,
+            fontweight="bold",
+            color="dimgray")
 
     if filename:
         fig.savefig(filename, dpi=200, bbox_inches="tight")
@@ -137,7 +173,6 @@ def render_episode_frames(
         fig, ax = _base_grid_figure(env,
                                     title=f"t={t}, r={r:.2f}, done={done}")
         sr, sc = env.start_row_column
-        gr, gc = env.goal_row_column
         ax.text(sc,
                 sr,
                 "S",
@@ -145,13 +180,25 @@ def render_episode_frames(
                 va="center",
                 fontsize=14,
                 fontweight="bold")
-        ax.text(gc,
+
+        for gr, gc in _get_goal_positions(env):
+            ax.text(gc,
                 gr,
                 "G",
                 ha="center",
                 va="center",
                 fontsize=14,
                 fontweight="bold")
+
+        for orow, ocol in _get_obstacle_positions(env):
+            ax.text(ocol,
+                orow,
+                "X",
+                ha="center",
+                va="center",
+                fontsize=12,
+                fontweight="bold",
+                color="dimgray")
 
         ax.text(c_next,
                 r_next,
@@ -368,21 +415,37 @@ def plot_convergence(
     title: str = "Convergence: Q-learning vs SARSA",
 ) -> None:
     """Plot rolling-average convergence curves for Q-learning and SARSA."""
+    plot_reward_comparison(
+        {"Q-learning": rewards_ql, "SARSA": rewards_sarsa},
+        window=window,
+        filename=filename,
+        title=title,
+    )
+
+
+def plot_reward_comparison(
+    reward_series: Mapping[str, List[float]],
+    window: int = 200,
+    filename: str = "convergence.png",
+    title: str = "Learning curve comparison",
+) -> None:
+    """Plot rolling-average reward curves for multiple algorithms or variants."""
     if window <= 0:
         raise ValueError("window must be positive")
-
-    ql_smoothed = np.convolve(rewards_ql,
-                              np.ones(window) / window,
-                              mode="valid")
-    sarsa_smoothed = np.convolve(rewards_sarsa,
-                                 np.ones(window) / window,
-                                 mode="valid")
-    episodes_ql = np.arange(window - 1, window - 1 + len(ql_smoothed))
-    episodes_sarsa = np.arange(window - 1, window - 1 + len(sarsa_smoothed))
+    if not reward_series:
+        raise ValueError("reward_series must not be empty")
 
     fig, ax = plt.subplots(figsize=(12, 5))
-    ax.plot(episodes_ql, ql_smoothed, label="Q-learning", color="steelblue")
-    ax.plot(episodes_sarsa, sarsa_smoothed, label="SARSA", color="darkorange")
+    for label, rewards in reward_series.items():
+        if len(rewards) < window:
+            raise ValueError(
+                f"{label} has fewer episodes ({len(rewards)}) than the smoothing window ({window})."
+            )
+
+        smoothed = np.convolve(rewards, np.ones(window) / window, mode="valid")
+        episodes = np.arange(window - 1, window - 1 + len(smoothed))
+        ax.plot(episodes, smoothed, label=label)
+
     ax.set_xlabel("Episode")
     ax.set_ylabel(f"Total reward (rolling avg over {window} episodes)")
     ax.set_title(title)
