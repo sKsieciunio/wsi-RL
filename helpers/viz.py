@@ -10,19 +10,41 @@ from helpers.env import ACTIONS, SlipperyGridWorld
 ARROWS = {0: "↑", 1: "→", 2: "↓", 3: "←"}
 
 
-def _base_grid_figure(env, title: str = ""):
-    cell_size = 0.6
-    fig, ax = plt.subplots(figsize=(env.cols * cell_size + 1.5, env.rows * cell_size + 1.0))
+def _configure_ax(env: SlipperyGridWorld, ax, title: str = "") -> None:
+    """Apply standard grid formatting and special-cell overlays to an existing axis."""
     ax.set_aspect("equal")
     ax.set_xlim(-0.5, env.cols - 0.5)
     ax.set_ylim(env.rows - 0.5, -0.5)
-
     ax.set_xticks(np.arange(-0.5, env.cols, 1))
     ax.set_yticks(np.arange(-0.5, env.rows, 1))
     ax.grid(True)
     ax.set_xticklabels([])
     ax.set_yticklabels([])
     ax.set_title(title)
+
+    for r, c in getattr(env, "cliff_fields", set()):
+        ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1,
+                                   color="tomato", alpha=0.7, zorder=1))
+        ax.text(c, r, "C", ha="center", va="center",
+                fontsize=9, fontweight="bold", zorder=2)
+
+    for r, c in getattr(env, "wall_fields", set()):
+        ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1,
+                                   color="dimgray", alpha=0.85, zorder=1))
+        ax.text(c, r, "W", ha="center", va="center",
+                fontsize=9, fontweight="bold", color="white", zorder=2)
+
+    for r, c in getattr(env, "penalty_fields", set()):
+        ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1,
+                                   color="gold", alpha=0.55, zorder=1))
+        ax.text(c, r, "P", ha="center", va="center",
+                fontsize=9, fontweight="bold", zorder=2)
+
+
+def _base_grid_figure(env, title: str = ""):
+    cell_size = 0.6
+    fig, ax = plt.subplots(figsize=(env.cols * cell_size + 1.5, env.rows * cell_size + 1.0))
+    _configure_ax(env, ax, title=title)
     return fig, ax
 
 
@@ -31,6 +53,7 @@ def plot_policy(
     policy: np.ndarray,
     filename: Optional[str] = None,
     title: str = "Policy",
+    ax=None,
 ) -> None:
     """Visualize policy for each state
 
@@ -39,37 +62,31 @@ def plot_policy(
         policy (np.ndarray): Policy (deterministic action per each state).
         filename (Optional[str], optional): Where to save the plot. Defaults to None.
         title (str, optional): Defaults to "Policy".
-        
+        ax: Optional matplotlib axis. When provided the function draws into it
+            and does not call plt.show() (caller owns the figure).
     """
-    fig, ax = _base_grid_figure(env, title=title)
+    standalone = ax is None
+    if standalone:
+        fig, ax = _base_grid_figure(env, title=title)
+    else:
+        _configure_ax(env, ax, title=title)
 
     sr, sc = env.start_row_column
     gr, gc = env.goal_row_column
-    ax.text(sc,
-            sr,
-            "S",
-            ha="center",
-            va="center",
-            fontsize=14,
-            fontweight="bold")
-    ax.text(gc,
-            gr,
-            "G",
-            ha="center",
-            va="center",
-            fontsize=14,
-            fontweight="bold")
+    ax.text(sc, sr, "S", ha="center", va="center", fontsize=14, fontweight="bold", zorder=3)
+    ax.text(gc, gr, "G", ha="center", va="center", fontsize=14, fontweight="bold", zorder=3)
 
     for s in range(env.num_states):
         r, c = env.state_to_row_column(s)
-        if (r, c) in [env.start_row_column, env.goal_row_column]:
+        if env.is_terminal_state(s) or (r, c) == env.start_row_column:
             continue
         a = int(policy[s])
-        ax.text(c, r, ARROWS[a], ha="center", va="center", fontsize=14)
+        ax.text(c, r, ARROWS[a], ha="center", va="center", fontsize=14, zorder=3)
 
-    if filename:
-        fig.savefig(filename, dpi=200, bbox_inches="tight")
-    plt.show()
+    if standalone:
+        if filename:
+            fig.savefig(filename, dpi=200, bbox_inches="tight")
+        plt.show()
 
 
 def plot_value_heatmap(
@@ -77,6 +94,7 @@ def plot_value_heatmap(
     V: np.ndarray,
     filename: Optional[str] = None,
     title: str = "State Value",
+    ax=None,
 ) -> None:
     """Produces a heatmap image for V(s).
 
@@ -85,34 +103,46 @@ def plot_value_heatmap(
         V (np.ndarray): V(s)
         filename (Optional[str], optional): Where to save the plot. Defaults to None.
         title (str, optional): Defaults to "State Value".
-
+        ax: Optional matplotlib axis. When provided the function draws into it
+            and does not call plt.show() (caller owns the figure).
     """
-    V_grid = V.reshape(env.rows, env.cols)
-    fig, ax = plt.subplots()
-    im = ax.imshow(V_grid)
+    standalone = ax is None
+    if standalone:
+        cell_size = 0.6
+        fig, ax = plt.subplots(
+            figsize=(env.cols * cell_size + 1.5, env.rows * cell_size + 1.0))
 
-    ax.set_title(title)
-    ax.set_xticks([])
-    ax.set_yticks([])
+    V_grid = V.reshape(env.rows, env.cols)
+    im = ax.imshow(V_grid, extent=(-0.5, env.cols - 0.5, env.rows - 0.5, -0.5))
+    _configure_ax(env, ax, title=title)
     plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 
     sr, sc = env.start_row_column
     gr, gc = env.goal_row_column
-    ax.text(sc,
-            sr,
-            "S",
-            ha="center",
-            va="center",
-            fontsize=12,
-            fontweight="bold")
-    ax.text(gc,
-            gr,
-            "G",
-            ha="center",
-            va="center",
-            fontsize=12,
-            fontweight="bold")
+    ax.text(sc, sr, "S", ha="center", va="center",
+            fontsize=12, fontweight="bold", zorder=3)
+    ax.text(gc, gr, "G", ha="center", va="center",
+            fontsize=12, fontweight="bold", zorder=3)
 
+    if standalone:
+        if filename:
+            fig.savefig(filename, dpi=200, bbox_inches="tight")
+        plt.show()
+
+
+def plot_env(
+    env: SlipperyGridWorld,
+    filename: Optional[str] = None,
+    title: str = "Environment",
+) -> None:
+    """Visualise the bare environment: start, goal, cliffs, walls, penalty fields."""
+    fig, ax = _base_grid_figure(env, title=title)
+    sr, sc = env.start_row_column
+    gr, gc = env.goal_row_column
+    ax.text(sc, sr, "S", ha="center", va="center",
+            fontsize=14, fontweight="bold", zorder=3)
+    ax.text(gc, gr, "G", ha="center", va="center",
+            fontsize=14, fontweight="bold", zorder=3)
     if filename:
         fig.savefig(filename, dpi=200, bbox_inches="tight")
     plt.show()
