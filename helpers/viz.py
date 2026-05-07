@@ -134,18 +134,24 @@ def plot_env(
     env: SlipperyGridWorld,
     filename: Optional[str] = None,
     title: str = "Environment",
+    ax=None,
 ) -> None:
     """Visualise the bare environment: start, goal, cliffs, walls, penalty fields."""
-    fig, ax = _base_grid_figure(env, title=title)
+    standalone = ax is None
+    if standalone:
+        fig, ax = _base_grid_figure(env, title=title)
+    else:
+        _configure_ax(env, ax, title=title)
     sr, sc = env.start_row_column
     gr, gc = env.goal_row_column
     ax.text(sc, sr, "S", ha="center", va="center",
             fontsize=14, fontweight="bold", zorder=3)
     ax.text(gc, gr, "G", ha="center", va="center",
             fontsize=14, fontweight="bold", zorder=3)
-    if filename:
-        fig.savefig(filename, dpi=200, bbox_inches="tight")
-    plt.show()
+    if standalone:
+        if filename:
+            fig.savefig(filename, dpi=200, bbox_inches="tight")
+        plt.show()
 
 
 def render_episode_frames(
