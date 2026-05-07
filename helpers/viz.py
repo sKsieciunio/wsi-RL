@@ -11,7 +11,8 @@ ARROWS = {0: "↑", 1: "→", 2: "↓", 3: "←"}
 
 
 def _base_grid_figure(env, title: str = ""):
-    fig, ax = plt.subplots()
+    cell_size = 0.6
+    fig, ax = plt.subplots(figsize=(env.cols * cell_size + 1.5, env.rows * cell_size + 1.0))
     ax.set_aspect("equal")
     ax.set_xlim(-0.5, env.cols - 0.5)
     ax.set_ylim(env.rows - 0.5, -0.5)
@@ -167,7 +168,7 @@ def render_episode_frames(
             )
 
         path = os.path.join(out_dir, f"{prefix}_{t:04d}.png")
-        fig.savefig(path, dpi=200, bbox_inches="tight")
+        fig.savefig(path, dpi=200)
         plt.close(fig)
         saved.append(path)
 

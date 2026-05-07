@@ -60,6 +60,37 @@ def q_learning(
     return Q, episode_rewards
 
 
+def value_iteration(
+    env: SlipperyGridWorld,
+    max_iterations: int,
+    gamma: float,
+    threshold: float,
+) -> Tuple[np.ndarray, int]:
+    """Value iteration. Returns V and the number of iterations until convergence."""
+    V = np.zeros(env.num_states)
+
+    for i in range(max_iterations):
+        delta = 0
+        V_new = np.zeros(env.num_states)
+        for state in range(env.num_states):
+            if env.is_terminal_state(state):
+                continue
+            v_a = []
+            for a in ACTIONS:
+                val = sum(
+                    prob * (env.reward(state, a, next_state) + gamma * V[next_state])
+                    for prob, next_state in env.get_transition_distribution(state, a)
+                )
+                v_a.append(val)
+            V_new[state] = max(v_a)
+            delta = max(delta, abs(V_new[state] - V[state]))
+        V = V_new
+        if delta < threshold:
+            return V, i + 1
+
+    return V, max_iterations
+
+
 def sarsa(
     env: SlipperyGridWorld,
     n_episodes: int,
