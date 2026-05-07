@@ -43,6 +43,11 @@ class SlipperyGridWorld:
         goal_reward: float = 10.0,
         max_steps: Optional[int] = None,
         seed: Optional[int] = None,
+        penalty_fields: Optional[set] = None,
+        penalty_reward: float = -5.0,
+        cliff_fields: Optional[set] = None,
+        cliff_reward: float = -10.0,
+        wall_fields: Optional[set] = None,
     ):
         assert rows > 0 and cols > 0
         assert 0.0 <= slip_prob <= 1.0
@@ -55,6 +60,12 @@ class SlipperyGridWorld:
         self.step_reward = step_reward
         self.goal_reward = goal_reward
         self.max_steps = max_steps
+
+        self.penalty_fields: set = set(penalty_fields) if penalty_fields else set()
+        self.penalty_reward = penalty_reward
+        self.cliff_fields: set = set(cliff_fields) if cliff_fields else set()
+        self.cliff_reward = cliff_reward
+        self.wall_fields: set = set(wall_fields) if wall_fields else set()
 
         self.rng = random.Random(seed)
         self._steps = 0
@@ -73,10 +84,13 @@ class SlipperyGridWorld:
     def _in_bounds(self, r: int, c: int) -> bool:
         return 0 <= r < self.rows and 0 <= c < self.cols
 
+    def _is_passable(self, r: int, c: int) -> bool:
+        return self._in_bounds(r, c) and (r, c) not in self.wall_fields
+
     def _apply_action(self, r: int, c: int, a: int) -> Tuple[int, int]:
         dr, dc = ACTION_TO_DELTA[a]
         nr, nc = r + dr, c + dc
-        if self._in_bounds(nr, nc):
+        if self._is_passable(nr, nc):
             return nr, nc
         return r, c
 
@@ -90,7 +104,7 @@ class SlipperyGridWorld:
         r, c = self.state_to_row_column(state)
         dr, dc = ACTION_TO_DELTA[action]
         nr, nc = r + dr, c + dc
-        if self._in_bounds(nr, nc):
+        if self._is_passable(nr, nc):
             return self.row_column_to_state(nr, nc)
         return self.row_column_to_state(r, c)
 
@@ -143,7 +157,8 @@ class SlipperyGridWorld:
 
     def is_terminal_state(self, state: int) -> bool:
         """Check if the current state is terminal in the environment."""
-        return self.state_to_row_column(state) == self.goal_row_column
+        rc = self.state_to_row_column(state)
+        return rc == self.goal_row_column or rc in self.cliff_fields
 
     def step(self, action: int):
         """Perform one step in the environment.
@@ -164,13 +179,20 @@ class SlipperyGridWorld:
         nr, nc = self._apply_action(r, c, executed)
         self._agent_row_column = (nr, nc)
 
-        done = (self._agent_row_column == self.goal_row_column)
+        at_goal = self._agent_row_column == self.goal_row_column
+        at_cliff = self._agent_row_column in self.cliff_fields
+        done = at_goal or at_cliff
         if self.max_steps is not None and self._steps >= self.max_steps:
             done = True
 
-        reward = self.goal_reward if (
-            self._agent_row_column
-            == self.goal_row_column) else self.step_reward
+        if at_goal:
+            reward = self.goal_reward
+        elif at_cliff:
+            reward = self.cliff_reward
+        elif self._agent_row_column in self.penalty_fields:
+            reward = self.penalty_reward
+        else:
+            reward = self.step_reward
 
         info = {
             "intended_action": intended,
@@ -179,6 +201,14 @@ class SlipperyGridWorld:
         }
         return self.row_column_to_state(
             *self._agent_row_column), reward, done, info
+
+    def add_wall(self, rc: Tuple[int, int]) -> None:
+        """Add a wall cell (row, col). Agent cannot enter it."""
+        self.wall_fields.add(rc)
+
+    def remove_wall(self, rc: Tuple[int, int]) -> None:
+        """Remove a wall cell, opening the passage."""
+        self.wall_fields.discard(rc)
 
     def set_goal(self, goal: Tuple[int, int]):
         """Specify the goal state
@@ -201,10 +231,16 @@ class SlipperyGridWorld:
         Returns:
             float: reward from the environment.
         """
-        if self.state_to_row_column(state) == self.goal_row_column:
+        src_rc = self.state_to_row_column(state)
+        if src_rc == self.goal_row_column or src_rc in self.cliff_fields:
             return 0.0
-        if self.state_to_row_column(next_state) == self.goal_row_column:
+        dst_rc = self.state_to_row_column(next_state)
+        if dst_rc == self.goal_row_column:
             return self.goal_reward
+        if dst_rc in self.cliff_fields:
+            return self.cliff_reward
+        if dst_rc in self.penalty_fields:
+            return self.penalty_reward
         return self.step_reward
 
     def set_size(self,
